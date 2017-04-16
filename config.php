@@ -22,3 +22,5 @@ $this->response["intro"] = "Hoi, {name}. Voordat ik je berichten kan sturen moet
 $this->response["llnsuccess"] = "Klas '{klas}' ingesteld. Je krijgt vanaf nu een DM als er een nieuwe roosterwijziging voor jouw klas is.";
 $this->response["llnfail1"] = "Leerlingnummer '{text}' staat niet in het systeem. Vul een correct leerlingnummer in zoals: 11111";
 $this->response["llnfail2"] = "Leerlingnummer '{text}' wordt niet herkend. Vul een correct leerlingnummer in zoals: 11111";
+$this->response["info"] = "Ik ben HageveldBot en ik stuur automatisch meldingen die met Hageveld te maken hebben.";
+$this->response["maker"] = "Ik ben gemaakt door @lu1t.\n\nhttps://luithollander.nl";
