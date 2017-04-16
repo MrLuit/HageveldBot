@@ -88,6 +88,7 @@ class HageveldBot {
                                     $realname = mysqli_real_escape_string($this->conn2, $info['namechange']);
                                     mysqli_query($this->conn1, "UPDATE insta SET klas='$klas',realname='$realname',lln='$text' WHERE pk='$userid'");
                                     $this->sendMessage($userid,str_replace("{klas}",$klas,$this->response["llnsuccess"]));
+									$this->sendMessage($userid,$this->response["warning"]);
                                 }
                                 else {
                                     $this->sendMessage($userid,str_replace("{text}",$text,$this->response["llnfail1"]));

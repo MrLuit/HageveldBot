@@ -23,4 +23,5 @@ $this->response["llnsuccess"] = "Klas '{klas}' ingesteld. Je krijgt vanaf nu een
 $this->response["llnfail1"] = "Leerlingnummer '{text}' staat niet in het systeem. Vul een correct leerlingnummer in zoals: 11111";
 $this->response["llnfail2"] = "Leerlingnummer '{text}' wordt niet herkend. Vul een correct leerlingnummer in zoals: 11111";
 $this->response["info"] = "Ik ben HageveldBot en ik stuur automatisch meldingen die met Hageveld te maken hebben.";
-$this->response["maker"] = "Ik ben gemaakt door @lu1t.\n\nhttps://luithollander.nl";
+$this->response["maker"] = "Ik ben gemaakt door @lu1t https://luithollander.nl";
+$this->response["warning"] = "Waarschuwing: Het blijft je eigen verantwoordelijkheid om de informatie te controleren.";
