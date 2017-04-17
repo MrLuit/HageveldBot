@@ -1,18 +1,12 @@
 <?php
-$this->db1 = array();
-$this->db2 = array();
+$this->db = array();
 $this->insta = array();
 $this->response = array();
 
-$this->db1["host"] = "";
-$this->db1["username"] = "";
-$this->db1["password"] = "";
-$this->db1["database"] = "";
-
-$this->db2["host"] = "";
-$this->db2["username"] = "";
-$this->db2["password"] = "";
-$this->db2["database"] = "";
+$this->db["host"] = "";
+$this->db["username"] = "";
+$this->db["password"] = "";
+$this->db["database"] = "";
 
 $this->insta["username"] = "";
 $this->insta["password"] = "";
@@ -23,5 +17,5 @@ $this->response["llnsuccess"] = "Klas '{klas}' ingesteld. Je krijgt vanaf nu een
 $this->response["llnfail1"] = "Leerlingnummer '{text}' staat niet in het systeem. Vul een correct leerlingnummer in zoals: 11111";
 $this->response["llnfail2"] = "Leerlingnummer '{text}' wordt niet herkend. Vul een correct leerlingnummer in zoals: 11111";
 $this->response["info"] = "Ik ben HageveldBot en ik stuur automatisch meldingen die met Hageveld te maken hebben.";
-$this->response["maker"] = "Ik ben gemaakt door @lu1t https://luithollander.nl";
+$this->response["maker"] = "Ik ben gemaakt door @lu1t. https://luithollander.nl";
 $this->response["warning"] = "Waarschuwing: Het blijft je eigen verantwoordelijkheid om de informatie te controleren.";
