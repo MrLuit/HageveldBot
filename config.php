@@ -11,6 +11,7 @@ $this->db["database"] = "";
 $this->insta["username"] = "";
 $this->insta["password"] = "";
 $this->insta["debug"] = false;
+$this->insta["truncateddebug"] = false;
 
 $this->response["intro"] = "Hoi, {name}. Voordat ik je berichten kan sturen moet ik eerst weten in welke klas je zit. Antwoord met je leerlingnummer:";
 $this->response["llnsuccess"] = "Klas '{klas}' ingesteld. Je krijgt vanaf nu een DM als er een nieuwe roosterwijziging voor jouw klas is.";
