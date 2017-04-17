@@ -114,6 +114,9 @@ class HageveldBot {
                                     $this->sendMessage($userid,str_replace("{klas}",$klas,$this->response["llnsuccess"]));
 									$this->sendMessage($userid,$this->response["warning"]);
                                 }
+								elseif(mysqli_num_rows(mysqli_query($this->conn, "SELECT * FROM hageveld WHERE Leerlingnummer='$text' AND VanSchoolAf='true'")) == 1) {
+									$this->sendMessage($userid,$this->response["llnfail3"]);
+								}
                                 else {
                                     $this->sendMessage($userid,str_replace("{text}",$text,$this->response["llnfail1"]));
                                 }
