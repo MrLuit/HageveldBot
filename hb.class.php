@@ -14,28 +14,20 @@ class HageveldBot {
 
     public function sendMessage($pk, $bericht)
     {
-        $pk = mysqli_real_escape_string($this->conn1, $pk);
-        $bericht = mysqli_real_escape_string($this->conn1, $bericht);
-        mysqli_query($this->conn1, "INSERT INTO insta_m VALUES ('','$pk','$bericht','" . time() . "','send','false')");
+		if (mysqli_num_rows(mysqli_query($this->conn1, "SELECT * FROM insta WHERE pk='$userid' AND active='true' AND banned='false'")) > 0) {
+			$pk = mysqli_real_escape_string($this->conn1, $pk);
+			$bericht = mysqli_real_escape_string($this->conn1, $bericht);
+			mysqli_query($this->conn1, "INSERT INTO insta_m VALUES ('','$pk','$bericht','" . time() . "','send','false')");
+		}
     }
 
     public function receiveMessage($pk, $bericht)
     {
-        $pk = mysqli_real_escape_string($this->conn1, $pk);
+        /*$pk = mysqli_real_escape_string($this->conn1, $pk);
         $bericht = mysqli_real_escape_string($this->conn1, $bericht);
         if(mysqli_num_rows(mysqli_query($this->conn1,"SELECT * FROM insta_m WHERE text='$bericht' AND userid='$pk'")) == 0) {
-            //mysqli_query($this->conn1, "INSERT INTO insta_m VALUES ('','$pk','$bericht','" . time() . "','receive','true')");
-        }
-    }
-
-    public function isBanned($pk) {
-        $banned = array();
-        if(in_array($pk,$banned)) {
-            return true;
-        }
-        else {
-            return false;
-        }
+            mysqli_query($this->conn1, "INSERT INTO insta_m VALUES ('','$pk','$bericht','" . time() . "','receive','true')");
+        }*/
     }
     
     public function checkFollowers()
@@ -57,17 +49,50 @@ class HageveldBot {
                 $voornaam = explode(' ', $fullname) [0];
                 $voornaam = ucfirst(strtolower($voornaam));
             }
+			elseif($fullname != "" && $fullname != false) {
+				$voornaam = $fullname;
+			}
             else {
                 $voornaam = $username;
             }
 
             $pk = mysqli_real_escape_string($this->conn1, $follower->getPk());
-            if (mysqli_num_rows(mysqli_query($this->conn1, "SELECT * FROM insta WHERE pk='$pk'")) == 0) {
+			$user = mysqli_query($this->conn1, "SELECT * FROM insta WHERE pk='$pk'");
+			$userinfo = mysqli_fetch_assoc($user);
+            if (mysqli_num_rows($user) == 0) {
                 $this->sendMessage($follower->getPk(),str_replace("{name}",$voornaam,$this->response["intro"]));
-                mysqli_query($this->conn1, "INSERT INTO insta VALUES ('','$username','$image','$fullname','$pk','','','','" . time() . "')");
+                mysqli_query($this->conn1, "INSERT INTO insta VALUES ('','$username','$image','$fullname','$pk','','','','" . time() . "','true','','','','','false')");
             }
+			elseif($userinfo['active'] == "false") {
+				mysqli_query($this->conn1, "UPDATE insta SET active='true' WHERE ID='$userinfo[ID]'");
+			}
         }
     }
+	
+	public function updateFollowers() {
+		$query = mysqli_query($this->conn1,"SELECT * FROM insta");
+		while($row = mysqli_fetch_assoc($query)) {
+			$user = $this->ig->getUserInfoById($row['pk'])->user;
+			$media = $user->media_count;
+			$followers = $user->follower_count;
+			$following = $user->following_count;
+			$bio = mysqli_real_escape_string($this->conn1, $user->biography);
+			$fullname = mysqli_real_escape_string($this->conn1, $user->full_name);
+			$username = $user->username;
+			if(count($user->hd_profile_pic_versions) > 0) {
+				foreach($user->hd_profile_pic_versions as $pf) {
+					$img = $pf->url;
+				}
+			}
+			else {
+				$img = $user->profile_pic_url;
+			}
+			mysqli_query($this->conn1,"UPDATE insta SET media='$media',followers='$followers',following='$following',bio='$bio',fullname='$fullname',username='$username',image='$img' WHERE ID='$row[ID]'");
+			if($this->ig->getUserFriendship($row['pk'])->followed_by != "1") {
+				mysqli_query($this->conn1,"UPDATE insta SET active='false' WHERE ID='$row[ID]'");
+			}
+		}
+	}
 
     public function checkInbox()
     {
@@ -77,9 +102,9 @@ class HageveldBot {
                     $userid = mysqli_real_escape_string($this->conn1, $item->user_id);
                     $type = mysqli_real_escape_string($this->conn1, $item->item_type);
                     $text = mysqli_real_escape_string($this->conn1, $item->text);
-                    if ($userid != $this->ig->getCurrentUser()->user->pk && $type == "text" && !$this->isBanned($userid)) {
+                    if ($userid != $this->ig->getCurrentUser()->user->pk && $type == "text") {
                         $this->receiveMessage($userid,$text);
-                        if (mysqli_num_rows(mysqli_query($this->conn1, "SELECT * FROM insta WHERE pk='$userid' AND klas=''")) > 0) {
+                        if (mysqli_num_rows(mysqli_query($this->conn1, "SELECT * FROM insta WHERE pk='$userid' AND klas='' AND active='true' AND banned='false'")) > 0) {
                             if (ctype_digit($text)) {
                                 $query = mysqli_query($this->conn2, "SELECT * FROM personen2 WHERE Leerlingnummer='$text'");
                                 if (mysqli_num_rows($query) == 1) {
@@ -98,12 +123,14 @@ class HageveldBot {
                                 $this->sendMessage($userid,str_replace("{text}",$text,$this->response["llnfail2"]));
                             }
                         }
-                        elseif($this->parse($text,'[["+wie","+ben","+jij"],["+wie","+ben","+je"]]')) {
-                            $this->sendMessage($userid,$this->response["info"]);
-                        }
-                        elseif($this->parse($text,'[["+wie heeft","+gemaakt"],["+wie is","+maker"]]')) {
-                            $this->sendMessage($userid,$this->response["maker"]);
-                        }
+						elseif(mysqli_num_rows(mysqli_query($this->conn1, "SELECT * FROM insta WHERE pk='$userid' AND banned='false'")) > 0) {
+							if($this->parse($text,'[["+wie","+ben","+jij"],["+wie","+ben","+je"]]')) {
+								$this->sendMessage($userid,$this->response["info"]);
+							}
+							elseif($this->parse($text,'[["+wie heeft","+gemaakt"],["+wie is","+maker"]]')) {
+								$this->sendMessage($userid,$this->response["maker"]);
+							}
+						}
                     }
                 }
             }
@@ -112,7 +139,7 @@ class HageveldBot {
     public function roosterUpdate($klas,$bericht) {
         $klas = mysqli_real_escape_string($this->conn1,$klas);
         $bericht = mysqli_real_escape_string($this->conn1,$bericht);
-        $query = mysqli_query($this->conn1,"SELECT * FROM insta WHERE klas LIKE '%$klas%'");
+        $query = mysqli_query($this->conn1,"SELECT * FROM insta WHERE klas LIKE '%$klas%' AND active='true'");
         while($row = mysqli_fetch_assoc($query)) {
             $this->sendMessage($row['pk'],$bericht);
         }
