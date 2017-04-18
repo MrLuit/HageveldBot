@@ -1,5 +1,7 @@
 # HageveldBot
-Een Instagram-robot voor Hageveld-leerlingen.
+*Niet bedoeld voor [eigen gebruik](https://raw.githubusercontent.com/MrLuit/HageveldBot/master/LICENSE.md)*.
+
+Een Instagram-robot voor Hageveld-leerlingen. Geschreven volgens de [Instagram Platform Policy](https://www.instagram.com/about/legal/terms/api/).
 
 Opvolger van [Luitdev](https://github.com/MrLuit/Luitdev).
 

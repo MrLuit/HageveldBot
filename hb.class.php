@@ -1,6 +1,5 @@
 <?php
 class HageveldBot {
-
     public function __construct() {
         require ('config.php');
         require ('vendor/autoload.php');
@@ -18,6 +17,7 @@ class HageveldBot {
 
     public function naam($array) {
         foreach($array as $naam) {
+            //$naam = preg_replace('/^[a-z0-9 .\-]+/', '', $naam);
             if($naam != "" && $naam != " ") {
                 if(strpos($naam, ' ') !== false) {
                     $naam = explode(' ', $naam)[0];
@@ -27,27 +27,19 @@ class HageveldBot {
             }
         }
     }
-    
+
     public function uploadStory($url,$caption) {
         $this->ig->uploadStoryPhoto($url, ['caption' => $caption]);
     }
 
     public function sendMessage($pk, $bericht) {
-        if (mysqli_num_rows(mysqli_query($this->conn, "SELECT * FROM insta WHERE pk='$userid' AND active='true' AND banned='false'")) > 0) {
+        if (mysqli_num_rows(mysqli_query($this->conn, "SELECT * FROM insta WHERE pk='$pk' AND active='true' AND banned='false'")) > 0) {
             $pk = mysqli_real_escape_string($this->conn, $pk);
             $bericht = mysqli_real_escape_string($this->conn, $bericht);
             mysqli_query($this->conn, "INSERT INTO insta_m VALUES ('','$pk','$bericht','" . time() . "','send','false')");
         }
     }
-
-    public function receiveMessage($pk, $bericht) {
-        /*$pk = mysqli_real_escape_string($this->conn, $pk);
-        $bericht = mysqli_real_escape_string($this->conn, $bericht);
-        if(mysqli_num_rows(mysqli_query($this->conn,"SELECT * FROM insta_m WHERE text='$bericht' AND userid='$pk'")) == 0) {
-            mysqli_query($this->conn, "INSERT INTO insta_m VALUES ('','$pk','$bericht','" . time() . "','receive','true')");
-        }*/
-    }
-
+    
     public function checkFollowers() {
         $followers = [];
         $maxId = null;
@@ -65,15 +57,18 @@ class HageveldBot {
             if (mysqli_num_rows($user) == 0) {
                 $username = mysqli_real_escape_string($this->conn, $follower->getUsername());
                 $fullname = mysqli_real_escape_string($this->conn, $follower->getFullName());
+                mysqli_query($this->conn, "INSERT INTO insta VALUES ('$pk','$username','','$fullname','','','','" . time() . "','true','false','','','','','0')");
+            }
+            elseif (mysqli_num_rows($user) > 0 && $userinfo['status'] == "0") {
+                $username = mysqli_real_escape_string($this->conn, $follower->getUsername());
+                $fullname = mysqli_real_escape_string($this->conn, $follower->getFullName());
                 $this->sendMessage($follower->getPk(),str_replace("{name}",$this->naam(array($fullname,$username)),$this->response["intro"]));
-                mysqli_query($this->conn, "INSERT INTO insta VALUES ('$pk','$username','','$fullname','','','','" . time() . "','true','false','','','','')");
+                mysqli_query($this->conn, "UPDATE insta SET status='1' WHERE pk='$pk'");
             }
-            elseif($userinfo['active'] == "false") {
-                mysqli_query($this->conn, "UPDATE insta SET active='true' WHERE pk='$userinfo[pk]'");
-            }
+            mysqli_query($this->conn, "UPDATE insta SET active='true' WHERE pk='$userinfo[pk]'");
         }
     }
-
+    
     public function updateFollowers() {
         $query = mysqli_query($this->conn,"SELECT * FROM insta");
         while($row = mysqli_fetch_assoc($query)) {
@@ -103,46 +98,55 @@ class HageveldBot {
             $messages = $this->ig->getV2Inbox()->fullResponse->inbox;
             foreach($messages->threads as $thread) {
                 foreach($thread->items as $item) {
-                    $userid = mysqli_real_escape_string($this->conn, $item->user_id);
-                    $type = mysqli_real_escape_string($this->conn, $item->item_type);
-                    $text = mysqli_real_escape_string($this->conn, $item->text);
-                    if ($userid != $this->ig->getCurrentUser()->user->pk && $type == "text") {
-                        $this->receiveMessage($userid,$text);
-                        if (mysqli_num_rows(mysqli_query($this->conn, "SELECT * FROM insta WHERE pk='$userid' AND klas='' AND active='true' AND banned='false'")) > 0) {
-                            if (ctype_digit($text)) {
-                                $query = mysqli_query($this->conn, "SELECT * FROM hageveld WHERE Leerlingnummer='$text'");
-                                if (mysqli_num_rows($query) == 1) {
-                                    $info = mysqli_fetch_assoc($query);
-                                    $klas = strtoupper(mysqli_real_escape_string($this->conn, $info['Klas']));
-                                    $realname = mysqli_real_escape_string($this->conn, $info['Naam']);
-                                    mysqli_query($this->conn, "UPDATE insta SET klas='$klas',realname='$realname',lln='$text' WHERE pk='$userid'");
-                                    $this->sendMessage($userid,str_replace("{klas}",$klas,$this->response["llnsuccess"]));
-                                    $this->sendMessage($userid,$this->response["warning"]);
-                                }
-                                elseif(mysqli_num_rows(mysqli_query($this->conn, "SELECT * FROM hageveld WHERE Leerlingnummer='$text' AND VanSchoolAf='true'")) == 1) {
-                                    $this->sendMessage($userid,$this->response["llnfail3"]);
+                    if($item->item_type == "text") {
+                        $userid = mysqli_real_escape_string($this->conn, $item->user_id);
+                        $text = mysqli_real_escape_string($this->conn, $item->text);
+                        if ($userid != $this->ig->getCurrentUser()->user->pk) {
+                            if (mysqli_num_rows(mysqli_query($this->conn, "SELECT * FROM insta WHERE pk='$userid' AND status='1' AND active='true' AND banned='false'")) > 0) {
+                                if (ctype_digit($text)) {
+                                    $query = mysqli_query($this->conn, "SELECT * FROM hageveld WHERE Leerlingnummer='$text'");
+                                    if (mysqli_num_rows($query) == 1) {
+                                        $info = mysqli_fetch_assoc($query);
+                                        $klas = strtoupper(mysqli_real_escape_string($this->conn, $info['Klas']));
+                                        $realname = mysqli_real_escape_string($this->conn, $info['Naam']);
+                                        mysqli_query($this->conn, "UPDATE insta SET klas='$klas',realname='$realname',lln='$text',status='2' WHERE pk='$userid'");
+                                        $this->sendMessage($userid,str_replace("{klas}",$klas,$this->response["llnsuccess"]));
+                                        $this->sendMessage($userid,$this->response["warning"]);
+                                    }
+                                    elseif(mysqli_num_rows(mysqli_query($this->conn, "SELECT * FROM hageveld WHERE Leerlingnummer='$text' AND VanSchoolAf='true'")) == 1) {
+                                        $this->sendMessage($userid,$this->response["llnfail3"]);
+                                    }
+                                    else {
+                                        $this->sendMessage($userid,str_replace("{text}",$text,$this->response["llnfail1"]));
+                                    }
                                 }
                                 else {
-                                    $this->sendMessage($userid,str_replace("{text}",$text,$this->response["llnfail1"]));
+                                    $this->sendMessage($userid,str_replace("{text}",$text,$this->response["llnfail2"]));
                                 }
                             }
-                            else {
-                                $this->sendMessage($userid,str_replace("{text}",$text,$this->response["llnfail2"]));
+                            elseif(mysqli_num_rows(mysqli_query($this->conn, "SELECT * FROM insta WHERE pk='$userid' AND banned='false'")) > 0) {
+                                if($this->parse($text,'[["+wie","+ben","+jij"],["+wie","+ben","+je"]]')) {
+                                    $this->sendMessage($userid,$this->response["info"]);
+                                }
+                                elseif($this->parse($text,'[["+wie heeft","+gemaakt"],["+wie is","+maker"]]')) {
+                                    $this->sendMessage($userid,$this->response["maker"]);
+                                }
                             }
                         }
-                        elseif(mysqli_num_rows(mysqli_query($this->conn, "SELECT * FROM insta WHERE pk='$userid' AND banned='false'")) > 0) {
-                            if($this->parse($text,'[["+wie","+ben","+jij"],["+wie","+ben","+je"]]')) {
-                                $this->sendMessage($userid,$this->response["info"]);
-                            }
-                            elseif($this->parse($text,'[["+wie heeft","+gemaakt"],["+wie is","+maker"]]')) {
-                                $this->sendMessage($userid,$this->response["maker"]);
-                            }
-                        }
+                    }
+					elseif($item->type == "like") {
+						//
+					}
+					elseif($item->type == "media") {
+						//
+					}
+                    else {
+                        error_log("Onbekend media type: " . $item->item_type);
                     }
                 }
             }
     }
-
+    
     public function roosterUpdate($klas,$bericht) {
         $klas = mysqli_real_escape_string($this->conn,$klas);
         $bericht = mysqli_real_escape_string($this->conn,$bericht);
@@ -155,7 +159,7 @@ class HageveldBot {
     public function pollMessages() {
         $query = mysqli_query($this->conn, "SELECT * FROM insta_m WHERE type='send' AND done='false'");
         while ($row = mysqli_fetch_assoc($query)) {
-            sleep(5);
+            sleep(3);
             $this->ig->directMessage($row['userid'], $row['text']);
             mysqli_query($this->conn, "UPDATE insta_m SET done='" . time() . "' WHERE ID='$row[ID]'");
         }
