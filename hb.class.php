@@ -72,6 +72,7 @@ class HageveldBot {
     public function updateFollowers() {
         $query = mysqli_query($this->conn,"SELECT * FROM insta");
         while($row = mysqli_fetch_assoc($query)) {
+			usleep($this->delay["updatefollowers"]);
             $user = $this->ig->getUserInfoById($row['pk'])->user;
             $media = $user->media_count;
             $followers = $user->follower_count;
@@ -134,12 +135,8 @@ class HageveldBot {
                             }
                         }
                     }
-					elseif($item->type == "like") {
-						//
-					}
-					elseif($item->type == "media") {
-						//
-					}
+					elseif($item->type == "like") { }
+					elseif($item->type == "media") { }
                     else {
                         error_log("Onbekend media type: " . $item->item_type);
                     }
@@ -150,7 +147,7 @@ class HageveldBot {
     public function roosterUpdate($klas,$bericht) {
         $klas = mysqli_real_escape_string($this->conn,$klas);
         $bericht = mysqli_real_escape_string($this->conn,$bericht);
-        $query = mysqli_query($this->conn,"SELECT * FROM insta WHERE klas LIKE '%$klas%' AND active='true'");
+        $query = mysqli_query($this->conn,"SELECT * FROM insta WHERE klas LIKE '%$klas%' AND active='true' AND banned!='false'");
         while($row = mysqli_fetch_assoc($query)) {
             $this->sendMessage($row['pk'],$bericht);
         }
@@ -159,7 +156,7 @@ class HageveldBot {
     public function pollMessages() {
         $query = mysqli_query($this->conn, "SELECT * FROM insta_m WHERE type='send' AND done='false'");
         while ($row = mysqli_fetch_assoc($query)) {
-            sleep(3);
+            usleep($this->delay["send"]);
             $this->ig->directMessage($row['userid'], $row['text']);
             mysqli_query($this->conn, "UPDATE insta_m SET done='" . time() . "' WHERE ID='$row[ID]'");
         }
