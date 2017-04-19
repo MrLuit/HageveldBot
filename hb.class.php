@@ -165,9 +165,30 @@ class HageveldBot {
     public function roosterUpdate($klas,$bericht) {
         $klas = mysqli_real_escape_string($this->conn,$klas);
         $bericht = mysqli_real_escape_string($this->conn,$bericht);
-        $query = mysqli_query($this->conn,"SELECT * FROM insta WHERE klas LIKE '%$klas%' AND active='true' AND banned!='false'");
-        while($row = mysqli_fetch_assoc($query)) {
-            $this->sendMessage($row['pk'],$bericht);
+        if(strpos($klas,', ') !== false) {
+            $klas = explode(', ',$klas);
+            foreach($klas as $k) {
+                $query = mysqli_query($this->conn,"SELECT * FROM insta WHERE klas LIKE '%$k%' AND active='true' AND banned='false'");
+                while($row = mysqli_fetch_assoc($query)) {
+                    $this->sendMessage($row['pk'],$bericht);
+                }
+            }
+        }
+        elseif(strpos($klas,',') !== false) {
+            $klas = explode(',',$klas);
+            foreach($klas as $k) {
+                $query = mysqli_query($this->conn,"SELECT * FROM insta WHERE klas LIKE '%$k%' AND active='true' AND banned='false'");
+                while($row = mysqli_fetch_assoc($query)) {
+                    $this->sendMessage($row['pk'],$bericht);
+                }
+            }
+        }
+        else {
+            $query = mysqli_query($this->conn,"SELECT * FROM insta WHERE klas LIKE '%$klas%' AND active='true' AND banned='false'");
+            while($row = mysqli_fetch_assoc($query)) {
+                print_r($row);
+                $this->sendMessage($row['pk'],$bericht);
+            }
         }
     }
 
