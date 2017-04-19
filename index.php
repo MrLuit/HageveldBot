@@ -17,4 +17,5 @@ try {
 	$hb->close();
 } catch(Exception $e) {
 	print_r($e);
+	error_log(json_encode($e));
 }

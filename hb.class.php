@@ -1,18 +1,20 @@
 <?php
 class HageveldBot {
     public function __construct() {
-        require ('config.php');
-        require ('vendor/autoload.php');
-        $this->conn = mysqli_connect($this->db["host"], $this->db["username"], $this->db["password"], $this->db["database"]);
-        $this->ig = new \InstagramAPI\Instagram($this->insta["debug"],$this->insta["truncateddebug"], [
-            "storage"      => "mysql",
-            "dbhost"       => $this->db["host"],
-            "dbname"   => $this->db["database"],
-            "dbusername"   => $this->db["username"],
-            "dbpassword"   => $this->db["password"],
-        ]);
-        $this->ig->setUser($this->insta["username"], $this->insta["password"]);
-        $this->ig->login();
+		if($this->keepRunning()) {
+			require ('config.php');
+			require ('vendor/autoload.php');
+			$this->conn = mysqli_connect($this->db["host"], $this->db["username"], $this->db["password"], $this->db["database"]);
+			$this->ig = new \InstagramAPI\Instagram($this->insta["debug"],$this->insta["truncateddebug"], [
+				"storage"      => "mysql",
+				"dbhost"       => $this->db["host"],
+				"dbname"   => $this->db["database"],
+				"dbusername"   => $this->db["username"],
+				"dbpassword"   => $this->db["password"],
+			]);
+			$this->ig->setUser($this->insta["username"], $this->insta["password"]);
+			$this->ig->login();
+		}
     }
 
     public function naam($array) {
@@ -27,13 +29,22 @@ class HageveldBot {
             }
         }
     }
+	
+	public function keepRunning() {
+		if(file_get_contents('kill.txt') == "false") {
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
 
     public function uploadStory($url,$caption) {
         $this->ig->uploadStoryPhoto($url, ['caption' => $caption]);
     }
 
     public function sendMessage($pk, $bericht) {
-        if (mysqli_num_rows(mysqli_query($this->conn, "SELECT * FROM insta WHERE pk='$pk' AND active='true' AND banned='false'")) > 0) {
+        if (mysqli_num_rows(mysqli_query($this->conn, "SELECT * FROM insta WHERE pk='$pk' AND active='true' AND banned='false'")) > 0 && $this->keepRunning()) {
             $pk = mysqli_real_escape_string($this->conn, $pk);
             $bericht = mysqli_real_escape_string($this->conn, $bericht);
             mysqli_query($this->conn, "INSERT INTO insta_m VALUES ('','$pk','$bericht','" . time() . "','send','false')");
@@ -51,27 +62,29 @@ class HageveldBot {
 
         while ($maxId !== null); 
         foreach($followers as $follower) {
-            $pk = mysqli_real_escape_string($this->conn, $follower->getPk());
-            $user = mysqli_query($this->conn, "SELECT * FROM insta WHERE pk='$pk'");
-            $userinfo = mysqli_fetch_assoc($user);
-            if (mysqli_num_rows($user) == 0) {
-                $username = mysqli_real_escape_string($this->conn, $follower->getUsername());
-                $fullname = mysqli_real_escape_string($this->conn, $follower->getFullName());
-                mysqli_query($this->conn, "INSERT INTO insta VALUES ('$pk','$username','','$fullname','','','','" . time() . "','true','false','','','','','0')");
-            }
-            elseif (mysqli_num_rows($user) > 0 && $userinfo['status'] == "0") {
-                $username = mysqli_real_escape_string($this->conn, $follower->getUsername());
-                $fullname = mysqli_real_escape_string($this->conn, $follower->getFullName());
-                $this->sendMessage($follower->getPk(),str_replace("{name}",$this->naam(array($fullname,$username)),$this->response["intro"]));
-                mysqli_query($this->conn, "UPDATE insta SET status='1' WHERE pk='$pk'");
-            }
-            mysqli_query($this->conn, "UPDATE insta SET active='true' WHERE pk='$userinfo[pk]'");
+			if($this->keepRunning()) {
+				$pk = mysqli_real_escape_string($this->conn, $follower->getPk());
+				$user = mysqli_query($this->conn, "SELECT * FROM insta WHERE pk='$pk'");
+				$userinfo = mysqli_fetch_assoc($user);
+				if (mysqli_num_rows($user) == 0) {
+					$username = mysqli_real_escape_string($this->conn, $follower->getUsername());
+					$fullname = mysqli_real_escape_string($this->conn, $follower->getFullName());
+					mysqli_query($this->conn, "INSERT INTO insta VALUES ('$pk','$username','','$fullname','','','','" . time() . "','true','false','','','','','0')");
+				}
+				elseif (mysqli_num_rows($user) > 0 && $userinfo['status'] == "0") {
+					$username = mysqli_real_escape_string($this->conn, $follower->getUsername());
+					$fullname = mysqli_real_escape_string($this->conn, $follower->getFullName());
+					$this->sendMessage($follower->getPk(),str_replace("{name}",$this->naam(array($fullname,$username)),$this->response["intro"]));
+					mysqli_query($this->conn, "UPDATE insta SET status='1' WHERE pk='$pk'");
+				}
+				mysqli_query($this->conn, "UPDATE insta SET active='true' WHERE pk='$userinfo[pk]'");
+			}
         }
     }
     
     public function updateFollowers() {
-        $query = mysqli_query($this->conn,"SELECT * FROM insta");
-        while($row = mysqli_fetch_assoc($query)) {
+        $query = mysqli_query($this->conn,"SELECT * FROM insta ORDER BY rand() LIMIT " . $this->limit["updatefollowers"]);
+        while($row = mysqli_fetch_assoc($query) && $this->keepRunning()) {
 			usleep($this->delay["updatefollowers"]);
             $user = $this->ig->getUserInfoById($row['pk'])->user;
             $media = $user->media_count;
@@ -99,7 +112,7 @@ class HageveldBot {
             $messages = $this->ig->getV2Inbox()->fullResponse->inbox;
             foreach($messages->threads as $thread) {
                 foreach($thread->items as $item) {
-                    if($item->item_type == "text") {
+                    if($item->item_type == "text" && $this->keepRunning()) {
                         $userid = mysqli_real_escape_string($this->conn, $item->user_id);
                         $text = mysqli_real_escape_string($this->conn, $item->text);
                         if ($userid != $this->ig->getCurrentUser()->user->pk) {
@@ -135,8 +148,8 @@ class HageveldBot {
                             }
                         }
                     }
-					elseif($item->type == "like") { }
-					elseif($item->type == "media") { }
+					elseif($item->item_type == "like") { }
+					elseif($item->item_type == "media") { }
                     else {
                         error_log("Onbekend media type: " . $item->item_type);
                     }
@@ -154,7 +167,7 @@ class HageveldBot {
     }
 
     public function pollMessages() {
-        $query = mysqli_query($this->conn, "SELECT * FROM insta_m WHERE type='send' AND done='false'");
+        $query = mysqli_query($this->conn, "SELECT * FROM insta_m WHERE type='send' AND done='false' LIMIT " . $this->limit["send"]);
         while ($row = mysqli_fetch_assoc($query)) {
             usleep($this->delay["send"]);
             $this->ig->directMessage($row['userid'], $row['text']);
