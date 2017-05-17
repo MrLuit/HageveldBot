@@ -6,6 +6,11 @@ try {
 	if(isset($_GET['rooster'])) {
 		$hb->roosterUpdate($_GET['klas'],$_GET['bericht']);
 	}
+	elseif(isset($_GET['melding'])) {
+		if(!isset($_GET['interval'])) { $_GET['interval'] = false; }
+		if(!isset($_GET['test'])) { $_GET['test'] = true; }
+		$hb->broadcast($_GET['melding'],$_GET['interval'],$_GET['test']);
+	}
 	elseif(isset($_GET['update'])) {
 		$hb->updateFollowers();
 	}

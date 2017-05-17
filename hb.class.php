@@ -186,11 +186,24 @@ class HageveldBot {
         else {
             $query = mysqli_query($this->conn,"SELECT * FROM insta WHERE klas LIKE '%$klas%' AND active='true' AND banned='false'");
             while($row = mysqli_fetch_assoc($query)) {
-                print_r($row);
                 $this->sendMessage($row['pk'],$bericht);
             }
         }
     }
+	
+	public function broadcast($bericht,$interval = false, $test = true) {
+		$query = mysqli_query($this->conn, "SELECT * FROM insta WHERE active='true'");
+		$bericht = mysqli_real_escape_string($this->conn,$bericht);
+		while($row = mysqli_fetch_assoc($query)) {
+			if(($test && $row['username'] == "lu1t") || !$test) {
+				$bericht = str_replace("{{naam}}",$this->naam(array(explode(' ',trim($row['realname']))[0],$row['fullname'],$row['username'])),$bericht);
+				mysqli_query($this->conn,"INSERT INTO insta_m VALUES ('','$row[pk]','$bericht','" . time() . "','send','false')");
+				if($interval != false) {
+					sleep($interval);
+				}
+			}
+		}
+	}
 
     public function pollMessages() {
         $query = mysqli_query($this->conn, "SELECT * FROM insta_m WHERE type='send' AND done='false' LIMIT " . $this->limit["send"]);
